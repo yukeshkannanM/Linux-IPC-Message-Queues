@@ -21,77 +21,118 @@ Execute the C Program for the desired output.
 # PROGRAM:
 
 ## C program that receives a message from message queue and display them
+### writer.c
+```
+// C Program for Message Queue (Writer Process)
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
+#include <string.h>
+#include <stdlib.h>
 
+// structure for message queue
 struct mesg_buffer {
     long mesg_type;
     char mesg_text[100];
 } message;
 
-int main(int argc, char *argv[]) {
+int main()
+{
     key_t key;
     int msgid;
 
-    if (argc != 2) {
-        printf("Usage: %s writer|reader\n", argv[0]);
-        return 1;
-    }
-
-    // Generate key
+    // ftok to generate unique key
     key = ftok("progfile", 65);
     if (key == -1) {
-        perror("ftok");
-        return 1;
+        perror("ftok failed");
+        exit(1);
     }
 
-    // Create message queue and return id
+    // msgget creates a message queue and returns identifier
     msgid = msgget(key, 0666 | IPC_CREAT);
     if (msgid == -1) {
-        perror("msgget");
-        return 1;
+        perror("msgget failed");
+        exit(1);
     }
 
-    // Print msgid for grading script
-    printf("Message Queue ID: %d\n", msgid);
+    message.mesg_type = 1;
 
-    if (strcmp(argv[1], "writer") == 0) {
-        message.mesg_type = 1;
-        printf("Enter Message: ");
-        fgets(message.mesg_text, sizeof(message.mesg_text), stdin);
-        message.mesg_text[strcspn(message.mesg_text, "\n")] = 0; // remove newline
+    printf("Write Data: ");
+    fgets(message.mesg_text, sizeof(message.mesg_text), stdin);
 
-        if (msgsnd(msgid, &message, sizeof(message), 0) == -1) {
-            perror("msgsnd");
-            return 1;
-        }
+    // remove newline from fgets
+    message.mesg_text[strcspn(message.mesg_text, "\n")] = '\0';
 
-        printf("Message sent: %s\n", message.mesg_text);
+    // msgsnd to send message
+    if (msgsnd(msgid, &message, sizeof(message.mesg_text), 0) == -1) {
+        perror("msgsnd failed");
+        exit(1);
     }
-    else if (strcmp(argv[1], "reader") == 0) {
-        if (msgrcv(msgid, &message, sizeof(message), 1, 0) == -1) {
-            perror("msgrcv");
-            return 1;
-        }
 
-        printf("Message received: %s\n", message.mesg_text);
-
-        // Destroy the message queue
-        msgctl(msgid, IPC_RMID, NULL);
-    }
-    else {
-        printf("Invalid argument. Use writer or reader.\n");
-        return 1;
-    }
+    // display the message
+    printf("Data sent is: %s\n", message.mesg_text);
 
     return 0;
 }
+```
+### reader.c
+```
+// C Program for Message Queue (Reader Process)
+
+#include <stdio.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
+#include <stdlib.h>
+
+// structure for message queue
+struct mesg_buffer {
+    long mesg_type;
+    char mesg_text[100];
+} message;
+
+int main()
+{
+    key_t key;
+    int msgid;
+
+    // ftok to generate unique key
+    key = ftok("progfile", 65);
+    if (key == -1) {
+        perror("ftok failed");
+        exit(1);
+    }
+
+    // msgget creates a message queue and returns identifier
+    msgid = msgget(key, 0666 | IPC_CREAT);
+    if (msgid == -1) {
+        perror("msgget failed");
+        exit(1);
+    }
+
+    // msgrcv to receive message
+    if (msgrcv(msgid, &message, sizeof(message.mesg_text), 1, 0) == -1) {
+        perror("msgrcv failed");
+        exit(1);
+    }
+
+    // display the message
+    printf("Data Received is : %s\n", message.mesg_text);
+
+    // destroy the message queue
+    msgctl(msgid, IPC_RMID, NULL);
+
+    return 0;
+}
+```
+
+
 
 ## OUTPUT
-    
+<img width="1133" height="501" alt="image" src="https://github.com/user-attachments/assets/4cc1432c-8a47-42b5-b987-02002ba4ef0e" />
+
+
+
+
 # RESULT:
 The programs are executed successfully.
